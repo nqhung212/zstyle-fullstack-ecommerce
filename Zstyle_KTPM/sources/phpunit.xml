@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    stopOnFailure="false"
+    failOnWarning="false"
+    failOnRisky="false"
+>
+
+    <testsuites>
+
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+
+        <testsuite name="API">
+            <directory>tests/API</directory>
+        </testsuite>
+
+        <testsuite name="Functional-UI">
+            <file>tests/UI/LoginUITest.php</file>
+            <file>tests/UI/ProductUITest.php</file>
+            <file>tests/UI/CartUITest.php</file>
+        </testsuite>
+
+        <testsuite name="E2E">
+            <file>tests/UI/E2EShoppingFlowTest.php</file>
+        </testsuite>
+
+        <testsuite name="Smoke">
+            <file>tests/UI/SmokeUITest.php</file>
+        </testsuite>
+
+    </testsuites>
+
+
+    <php>
+        <!-- Chỉ dùng cho Automation Tests -->
+        <env name="APP_ENV" value="test"/>
+        <env name="APP_URL" value="http://localhost:8080"/>
+        <env name="SELENIUM_URL" value="http://localhost:4444/wd/hub"/>
+    </php>
+
+
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">model</directory>
+            <directory suffix=".php">controller</directory>
+        </include>
+
+        <exclude>
+            <directory>vendor</directory>
+            <directory>tests</directory>
+        </exclude>
+
+        <report>
+            <html outputDirectory="coverage"/>
+        </report>
+    </coverage>
+
+</phpunit>

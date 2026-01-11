@@ -1,0 +1,367 @@
+name: Automation Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, mysqli, gd, zip
+
+      - name: Validate composer.json
+        run: composer validate --no-check-all --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run Unit Tests
+        run: vendor/bin/phpunit --testsuite Unit --testdox --no-logging
+
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: zstyle
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: zstyle_user
+          MYSQL_PASSWORD: zstyle_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, mysqli, gd, zip
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Import database
+        run: |
+          mysql -h 127.0.0.1 -u zstyle_user -pzstyle_password zstyle < Zstyle.sql
+
+      - name: Create upload directory
+        run: |
+          mkdir -p upload
+          chmod -R 777 upload
+
+      - name: Start PHP built-in server with DB config
+        run: |
+          export DB_HOST=127.0.0.1
+          export DB_NAME=zstyle  
+          export DB_USER=zstyle_user
+          export DB_PASSWORD=zstyle_password
+          php -S localhost:8080 -t . > server.log 2>&1 &
+          sleep 3
+          
+      - name: Verify server is running
+        run: |
+          curl -f http://localhost:8080/index.php || (cat server.log && exit 1)
+
+      - name: Run API Tests
+        env:
+          APP_URL: http://localhost:8080
+        run: vendor/bin/phpunit --testsuite API --testdox --no-logging
+
+  ui-tests:
+    name: Functional UI Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: zstyle
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: zstyle_user
+          MYSQL_PASSWORD: zstyle_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      selenium:
+        image: selenium/standalone-chrome:latest
+        ports:
+          - 4444:4444
+        options: --shm-size=2g
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, mysqli, gd, zip
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Import database
+        run: |
+          mysql -h 127.0.0.1 -u zstyle_user -pzstyle_password zstyle < Zstyle.sql
+
+      - name: Create upload directory
+        run: |
+          mkdir -p upload
+          chmod -R 777 upload
+
+      - name: Start PHP built-in server (accessible from containers)
+        run: |
+          export DB_HOST=127.0.0.1
+          export DB_NAME=zstyle
+          export DB_USER=zstyle_user
+          export DB_PASSWORD=zstyle_password
+          php -S 0.0.0.0:8080 -t . > server.log 2>&1 &
+          sleep 5
+          
+      - name: Verify server is running
+        run: |
+          curl -f http://localhost:8080/index.php || (cat server.log && exit 1)
+
+      - name: Wait for Selenium
+        run: |
+          timeout 30 bash -c 'until curl -sSL http://localhost:4444/wd/hub/status > /dev/null 2>&1; do sleep 2; done'
+
+      - name: Run Functional UI Tests
+        env:
+          APP_URL: http://172.17.0.1:8080
+          SELENIUM_URL: http://localhost:4444/wd/hub
+        run: vendor/bin/phpunit --testsuite Functional-UI --testdox --no-logging
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: zstyle
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: zstyle_user
+          MYSQL_PASSWORD: zstyle_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      selenium:
+        image: selenium/standalone-chrome:latest
+        ports:
+          - 4444:4444
+        options: --shm-size=2g
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, mysqli, gd, zip
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Import database
+        run: |
+          mysql -h 127.0.0.1 -u zstyle_user -pzstyle_password zstyle < Zstyle.sql
+
+      - name: Create upload directory
+        run: |
+          mkdir -p upload
+          chmod -R 777 upload
+
+      - name: Start PHP built-in server (accessible from containers)
+        run: |
+          export DB_HOST=127.0.0.1
+          export DB_NAME=zstyle
+          export DB_USER=zstyle_user
+          export DB_PASSWORD=zstyle_password
+          php -S 0.0.0.0:8080 -t . > server.log 2>&1 &
+          sleep 5
+          
+      - name: Verify server is running
+        run: |
+          curl -f http://localhost:8080/index.php || (cat server.log && exit 1)
+
+      - name: Wait for Selenium
+        run: |
+          timeout 30 bash -c 'until curl -sSL http://localhost:4444/wd/hub/status > /dev/null 2>&1; do sleep 2; done'
+
+      - name: Run E2E Tests (Complete Shopping Journey)
+        env:
+          APP_URL: http://172.17.0.1:8080
+          SELENIUM_URL: http://localhost:4444/wd/hub
+        run: vendor/bin/phpunit --testsuite E2E --testdox --no-logging
+
+  smoke-tests:
+    name: Smoke Tests (Quick Verification)
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: zstyle
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: zstyle_user
+          MYSQL_PASSWORD: zstyle_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      selenium:
+        image: selenium/standalone-chrome:latest
+        ports:
+          - 4444:4444
+        options: --shm-size=2g
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, mysqli, gd, zip
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Import database
+        run: |
+          mysql -h 127.0.0.1 -u zstyle_user -pzstyle_password zstyle < Zstyle.sql
+
+      - name: Start PHP built-in server (accessible from containers)
+        run: |
+          export DB_HOST=127.0.0.1
+          export DB_NAME=zstyle
+          export DB_USER=zstyle_user
+          export DB_PASSWORD=zstyle_password
+          php -S 0.0.0.0:8080 -t . > server.log 2>&1 &
+          sleep 5
+          
+      - name: Verify server is running
+        run: |
+          curl -f http://localhost:8080/index.php || (cat server.log && exit 1)
+
+      - name: Wait for Selenium
+        run: |
+          timeout 30 bash -c 'until curl -sSL http://localhost:4444/wd/hub/status > /dev/null 2>&1; do sleep 2; done'
+
+      - name: Run Smoke Tests (Fast Basic Checks)
+        env:
+          APP_URL: http://172.17.0.1:8080
+          SELENIUM_URL: http://localhost:4444/wd/hub
+        run: vendor/bin/phpunit --testsuite Smoke --testdox --no-logging
+
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: zstyle
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_USER: zstyle_user
+          MYSQL_PASSWORD: zstyle_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, mysqli, gd, zip
+          coverage: xdebug
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Import database
+        run: |
+          mysql -h 127.0.0.1 -u zstyle_user -pzstyle_password zstyle < Zstyle.sql
+
+      - name: Create upload directory
+        run: |
+          mkdir -p upload
+          chmod -R 777 upload
+
+      - name: Start PHP built-in server with DB config
+        run: |
+          export DB_HOST=127.0.0.1
+          export DB_NAME=zstyle  
+          export DB_USER=zstyle_user
+          export DB_PASSWORD=zstyle_password
+          php -S localhost:8080 -t . > server.log 2>&1 &
+          sleep 3
+          
+      - name: Verify server is running
+        run: |
+          curl -f http://localhost:8080/index.php || (cat server.log && exit 1)
+
+      - name: Run tests with coverage (Unit + API only)
+        env:
+          APP_URL: http://localhost:8080
+        run: vendor/bin/phpunit --testsuite Unit,API --coverage-clover coverage.xml --no-logging
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
