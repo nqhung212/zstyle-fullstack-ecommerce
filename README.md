@@ -1,6 +1,6 @@
 # ZStyle - E-commerce with Testing Focus
 
-An e-commerce platform for fashion products built with PHP and MySQL, with emphasis on comprehensive test coverage including 65 automated tests (unit, API, UI, and end-to-end).
+An e-commerce platform for fashion products built with PHP and MySQL, with emphasis on comprehensive test coverage including 131 automated tests covering functional, security, and data integrity aspects.
 
 ## Contents
 
@@ -17,15 +17,16 @@ An e-commerce platform for fashion products built with PHP and MySQL, with empha
 
 ## About
 
-ZStyle is an e-commerce platform for fashion products (t-shirts, jackets, polos, etc.). The project demonstrates comprehensive testing practices including:
+ZStyle is an e-commerce platform for fashion products (t-shirts, jackets, polos, etc.). The project demonstrates comprehensive testing practices with 131 total tests:
 
-- 23 unit tests for business logic
-- 20 API tests for endpoints
-- 15 functional UI tests
-- 1 end-to-end test (complete shopping flow)
-- 5 smoke tests for deployment verification
+- **45 Customer Functional Tests**: Product browsing, cart management, checkout, order tracking
+- **32 Admin Functional Tests**: Product/user/order management, system administration
+- **14 Security Tests**: Authorization, access control, SQL injection, XSS, IDOR prevention
+- **12 End-to-End Workflow Tests**: Complete customer purchase flow, admin workflows, access control flows
+- **8 Data Integrity Tests**: Database consistency, data synchronization across modules
+- **20 Non-functional Tests**: Performance, usability, compatibility, reliability
 
-The test suite covers authentication, product catalog, shopping cart, checkout, admin operations, and security validation.
+Test results: 116 passed, 15 failed. Coverage includes authentication, product catalog, shopping cart, checkout, order management, admin operations, and security validation.
 
 ### Technology Stack
 
@@ -73,34 +74,37 @@ Access the application at:
 ### All Tests
 
 ```bash
-# Requires Selenium running for UI tests
+# Requires Selenium running for workflow/UI tests
 docker exec -it zstyle_webserver vendor/bin/phpunit --testdox
 ```
 
-### Individual Suites
+### Run by Category
 
 ```bash
-# Unit tests (no browser needed)
-docker exec -it zstyle_webserver vendor/bin/phpunit --testsuite Unit --testdox
+# Customer functional tests
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/Functional/
 
-# API tests (no browser needed)
-docker exec -it zstyle_webserver vendor/bin/phpunit --testsuite API --testdox
+# Admin functional tests
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/Admin/
 
-# UI tests (requires Selenium)
-docker exec -it zstyle_webserver vendor/bin/phpunit --testsuite Functional-UI --testdox
+# Security tests
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/Security/
 
-# End-to-end test (requires Selenium)
-docker exec -it zstyle_webserver vendor/bin/phpunit --testsuite E2E --testdox
+# Data integrity tests
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/DataIntegrity/
 
-# Smoke tests (requires Selenium)
-docker exec -it zstyle_webserver vendor/bin/phpunit --testsuite Smoke --testdox
+# End-to-end workflow tests (requires Selenium)
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/Workflows/
+
+# Non-functional tests
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/NonFunctional/
 ```
 
 ### Fast Testing (No Selenium)
 
 ```bash
-# Run only unit and API tests
-docker exec -it zstyle_webserver vendor/bin/phpunit --testsuite Unit --testsuite API --testdox
+# Run all tests except workflow/UI tests that require Selenium
+docker exec -it zstyle_webserver vendor/bin/phpunit --testdox tests/Functional tests/Admin tests/Security tests/DataIntegrity tests/NonFunctional
 ```
 
 ### Watch Tests Visually
@@ -123,8 +127,8 @@ docker exec -it zstyle_webserver vendor/bin/phpunit --testdox --verbose
 docker exec -it zstyle_webserver vendor/bin/phpunit --coverage-html coverage
 # Open coverage/index.html in browser
 
-# Run single test
-docker exec -it zstyle_webserver vendor/bin/phpunit tests/Unit/CartCalculationTest.php --testdox
+# Run single test file
+docker exec -it zstyle_webserver vendor/bin/phpunit tests/Functional/CartTest.php --testdox
 
 # Selenium logs
 docker logs -f selenium_chrome
@@ -132,83 +136,95 @@ docker logs -f selenium_chrome
 
 ## Test Suite
 
-The test suite contains 65 tests organized into 5 categories:
+The test suite contains 131 total tests organized into 6 categories (116 passed, 15 failed):
 
-### Unit Tests (23)
+### Customer Functional Tests (45)
 
-Test individual functions and business logic without external dependencies.
+Test customer-facing features: product browsing, cart management, checkout, order tracking.
 
-- Email, phone, password validation (8 tests)
-- Product filtering and utilities (7 tests)
-- Cart calculations and totals (8 tests)
+- Product display and filtering
+- Shopping cart operations
+- Order placement and tracking
+- Account management
+- Payment flow simulation
 
-Run: `vendor/bin/phpunit --testsuite Unit --testdox`
+### Admin Functional Tests (32)
 
-### API Tests (20)
+Test administrative features: product/user/order management, system operations.
 
-Test REST endpoints and HTTP responses.
+- Product CRUD operations
+- User account management
+- Order management and status updates
+- Category and voucher management
+- Admin dashboard and statistics
 
-- Authentication endpoints (10 tests)
-- Product catalog endpoints (6 tests)
-- Shopping cart endpoints (4 tests)
+### Security Tests (14)
 
-Run: `vendor/bin/phpunit --testsuite API --testdox`
+Test authorization, access control, and common web vulnerabilities.
 
-### Functional UI Tests (15)
+- SQL injection prevention
+- Cross-site scripting (XSS) protection
+- Insecure direct object reference (IDOR) prevention
+- Role-based access control (RBAC)
+- Session security and management
 
-Test individual UI features using browser automation.
+### End-to-End Workflow Tests (12)
 
-- Login and registration forms (5 tests)
-- Product pages and filtering (5 tests)
-- Cart operations (5 tests)
+Test complete business processes spanning multiple modules.
 
-Requires Selenium. Run: `vendor/bin/phpunit --testsuite Functional-UI --testdox`
+- Complete customer purchase flow: browse → cart → checkout → order
+- Admin order processing workflow
+- Access control and permission workflows
+- Cross-module data consistency
 
-### End-to-End Test (1)
+### Data Integrity Tests (8)
 
-Test the complete shopping journey: browse products → select options → add to cart → checkout → place order.
+Test database consistency and data synchronization.
 
-Requires Selenium. Run: `vendor/bin/phpunit --testsuite E2E --testdox`
+- Cart and order data synchronization
+- Inventory updates
+- User and order associations
+- Orphaned data prevention
+- Transaction rollback on errors
 
-### Smoke Tests (5)
+### Non-functional Tests (20)
 
-Quick verification that critical paths work after deployment.
+Test performance, usability, compatibility, and reliability.
 
-- Homepage loads
-- Login page accessible
-- Product page displays
-- Cart functions
-- Checkout page loads
-
-Requires Selenium. Run: `vendor/bin/phpunit --testsuite Smoke --testdox`
+- Page load times and response times
+- UI/UX correctness and error messages
+- Browser compatibility (Chrome, Firefox)
+- Form validation and user guidance
+- Session timeout and state recovery
+- Concurrent operation handling
 
 ## Application Interface
 
 ### Customer Pages
 
-| Page           | Screenshot                         |
-| -------------- | ---------------------------------- |
-| Home           | ![](screenshot/home.png)           |
-| Products       | ![](screenshot/product.png)        |
-| Product Detail | ![](screenshot/product-detail.png) |
-| Shopping Cart  | ![](screenshot/cart.png)           |
-| Checkout       | ![](screenshot/checkout.png)       |
-| Login          | ![](screenshot/login.png)          |
-| Register       | ![](screenshot/sign-up.png)        |
-| Account        | ![](screenshot/profile.png)        |
-| Order History  | ![](screenshot/history.png)        |
-| News           | ![](screenshot/news.png)           |
+| Page           | Screenshot                                 |
+| -------------- | ------------------------------------------ |
+| Home           | ![](sources/screenshot/home.png)           |
+| Products       | ![](sources/screenshot/product.png)        |
+| Product Detail | ![](sources/screenshot/product-detail.png) |
+| Shopping Cart  | ![](sources/screenshot/cart.png)           |
+| Checkout       | ![](sources/screenshot/checkout.png)       |
+| Login          | ![](sources/screenshot/login.png)          |
+| Register       | ![](sources/screenshot/sign-up.png)        |
+| Account        | ![](sources/screenshot/profile.png)        |
+| Order History  | ![](sources/screenshot/history.png)        |
+| News           | ![](sources/screenshot/news.png)           |
 
 ### Admin Panel
 
-| Page      | Screenshot                          |
-| --------- | ----------------------------------- |
-| Dashboard | ![](screenshot/admin-dashboard.png) |
-| Products  | ![](screenshot/manager-product.png) |
-| Orders    | ![](screenshot/manager-order.png)   |
-| Users     | ![](screenshot/manager-user.png)    |
-| Vouchers  | ![](screenshot/manager-voucher.png) |
-| Comments  | ![](screenshot/manager-comment.png) |
+| Page      | Screenshot                                  |
+| --------- | ------------------------------------------- |
+| Dashboard | ![](sources/screenshot/admin-dashboard.png) |
+| Products  | ![](sources/screenshot/manager-product.png) |
+| Orders    | ![](sources/screenshot/manager-order.png)   |
+| Users     | ![](sources/screenshot/manager-user.png)    |
+| Vouchers  | ![](sources/screenshot/manager-voucher.png) |
+| Comments  | ![](sources/screenshot/manager-comment.png) |
 
 ## Docker
 
